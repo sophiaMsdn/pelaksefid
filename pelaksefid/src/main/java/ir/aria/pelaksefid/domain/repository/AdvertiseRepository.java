@@ -1,0 +1,29 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Interface.java to edit this template
+ */
+package ir.aria.pelaksefid.domain.repository;
+
+import ir.aria.pelaksefid.domain.entity.Advertise;
+import ir.aria.pelaksefid.domain.enumaration.AdvertiseStateEnm;
+import ir.aria.pelaksefid.domain.repository.custom.AdvertiseRepositoryCustom;
+import java.util.stream.Stream;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+/**
+ *
+ * @author Mana2
+ */
+public interface AdvertiseRepository extends JpaRepository<Advertise, Long>, AdvertiseRepositoryCustom {
+
+    @Query("select a.sigmaId from Advertise a where a.isActive = 1 and a.isAlive = 1 and a.sigma = 1")
+    public Stream<Long> findSigmaAdvertisIds();
+
+    public Long countBySigmaAndIsActiveAndIsAliveAndAdvertiseState(Boolean FALSE, Boolean TRUE, Boolean TRUE0, AdvertiseStateEnm advertiseStateEnm);
+
+    public Long countBySigmaAndIsActiveAndIsAlive(Boolean FALSE, Boolean TRUE, Boolean TRUE0);
+
+    public Advertise findBySigmaId(Long adId);
+
+}

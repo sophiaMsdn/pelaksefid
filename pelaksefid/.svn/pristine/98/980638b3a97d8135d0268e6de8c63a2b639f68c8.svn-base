@@ -1,0 +1,57 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package ir.aria.pelaksefid.utility;
+
+import ir.aria.pelaksefid.client.SmsServiceClient2;
+import ir.aria.pelaksefid.domain.enumaration.NotificationEnm;
+import ir.aria.pelaksefid.service.SmsService;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+/**
+ *
+ * @author Mana2
+ */
+@Component
+public class SmsUtil {
+
+    private static SmsService smsService;
+
+    @Autowired
+    public SmsUtil(SmsService smsService) {
+        SmsUtil.smsService = smsService;
+    }
+
+    /*
+    https://farazsms.com/login-page/
+    info@manatec.ir
+    sq!$DW71
+    num: +9850001040306030
+     */
+    private static final Map<NotificationEnm, String> PATTERNS;
+
+    static {
+        Map<NotificationEnm, String> aMap = new HashMap<>();
+//        aMap.put(NotificationEnm.CONTRACT_RETURN_SELLER, "a29tzmn1cn1jufh");
+        aMap.put(NotificationEnm.LOGIN_BY_OTP, "ad1328sabz1scv2");
+
+        PATTERNS = Collections.unmodifiableMap(aMap);
+    }
+
+    public static Boolean sendOtpCode(String cellNumber, Integer code) {
+        NotificationEnm enm = NotificationEnm.LOGIN_BY_OTP;
+        try {
+            Boolean posted = SmsServiceClient2.sendSms(cellNumber, code.toString());
+            smsService.insertSms(cellNumber, PATTERNS.get(enm), code.toString(), enm, posted);
+            return posted;
+        } catch (Exception e) {
+            smsService.insertSms(cellNumber, PATTERNS.get(enm), code.toString(), enm, false);
+            return false;
+        }
+    }
+}

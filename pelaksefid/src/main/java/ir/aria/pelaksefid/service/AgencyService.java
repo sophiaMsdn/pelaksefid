@@ -1,0 +1,417 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package ir.aria.pelaksefid.service;
+
+import ir.aria.pelaksefid.domain.entity.Account;
+import ir.aria.pelaksefid.domain.entity.Agency;
+import ir.aria.pelaksefid.domain.entity.AgencyDocument;
+import ir.aria.pelaksefid.domain.entity.AgencyType;
+import ir.aria.pelaksefid.domain.entity.Document;
+import ir.aria.pelaksefid.domain.entity.Region;
+import ir.aria.pelaksefid.domain.entity.User;
+import ir.aria.pelaksefid.domain.enumaration.AccountTypeEnm;
+import ir.aria.pelaksefid.domain.enumaration.AgencyDocTypeEnm;
+import ir.aria.pelaksefid.domain.enumaration.AgencyOperationEnm;
+import ir.aria.pelaksefid.domain.enumaration.AgencyStateEnm;
+import ir.aria.pelaksefid.domain.enumaration.ResultEnm;
+import ir.aria.pelaksefid.domain.model.AgencyDocumentDto;
+import ir.aria.pelaksefid.domain.model.AgencyDto;
+import ir.aria.pelaksefid.domain.model.DocumentDto;
+import ir.aria.pelaksefid.domain.repository.AccountRepository;
+import ir.aria.pelaksefid.domain.repository.AgencyDocumentRepository;
+import ir.aria.pelaksefid.domain.repository.AgencyRepository;
+import ir.aria.pelaksefid.domain.repository.AgencyTypeRepository;
+import ir.aria.pelaksefid.domain.repository.DocumentRepository;
+import ir.aria.pelaksefid.domain.repository.RegionRepository;
+import ir.aria.pelaksefid.service.base.BaseService;
+import ir.aria.pelaksefid.utility.DateFormatUtil;
+import ir.aria.pelaksefid.utility.ValidationUtil;
+import ir.aria.pelaksefid.web.v1.model.request.AgencyReq;
+import ir.aria.pelaksefid.web.v1.model.request.base.BaseReq;
+import java.util.List;
+import java.util.Optional;
+import javax.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.ExampleMatcher;
+import org.springframework.data.domain.ExampleMatcher.StringMatcher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ *
+ * @author Mana2
+ */
+@Service
+public class AgencyService extends BaseService {
+
+    @Autowired
+    private AgencyRepository repository;
+    @Autowired
+    private AccountService accountService;
+    @Autowired
+    private AccountRepository accountRepository;
+    @Autowired
+    private AgencyTypeRepository agencyTypeRepository;
+    @Autowired
+    private RegionRepository regionRepository;
+    @Autowired
+    private DocumentRepository documentRepository;
+    @Autowired
+    private AgencyDocumentRepository agencyDocumentRepository;
+    @Autowired
+    private AgencyRepository agencyRepository;
+    @Autowired
+    private AgencyDocumentService agencyDocumentService;
+    @Autowired
+    private AgencyHistoryService historyService;
+
+    public ResultEnm validateBeforeSave(AgencyReq req) {
+        if (req == null) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        if (req.getAgency() == null) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        AgencyDto agencyDto = req.getAgency();
+        if (!agencyDto.isValid()) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        return ResultEnm.OK;
+    }
+
+    @Transactional
+    public Agency controlAndSave(AgencyReq req, HttpServletRequest request) {
+        if (req == null) {
+            return null;
+        }
+        if (req.getAgency() == null) {
+            return null;
+        }
+        AgencyDto agencyDto = req.getAgency();
+        if (!agencyDto.isValid()) {
+            return null;
+        }
+        Account account = accountService.getAccountByBaseReq(req);
+        Agency agency = (Agency) agencyDto.toEntity();
+        agency.setAccount(account);
+        Optional<AgencyType> agencyType = agencyTypeRepository.findById(Long.valueOf(agencyDto.getAgencyTypeId()));
+        if (!agencyType.isPresent()) {
+            return null;
+        }
+        agency.setAgencyType(agencyType.get());
+        Optional<Region> region = regionRepository.findById(Long.valueOf(agencyDto.getRegionId()));
+        if (!region.isPresent()) {
+            return null;
+        }
+        agency.setAgencyState(AgencyStateEnm.REGISTERED);
+        agency.setRegion(region.get());
+        agency = repository.save(agency);
+        for (AgencyDocumentDto d : agencyDto.getDocuments()) {
+            Document document = (Document) d.getDocument().toEntity();
+            document = documentRepository.save(document);
+            AgencyDocument agencyDocument = new AgencyDocument();
+            agencyDocument.setType(AgencyDocTypeEnm.valueOf(d.getDocType()));
+            agencyDocument.setDocId(document.getId());
+            agencyDocument.setAgency(agency);
+            agencyDocument.setIsActive(Boolean.TRUE);
+            agencyDocument.setIsAlive(Boolean.TRUE);
+            agencyDocument = (AgencyDocument) logEntity(agencyDocument, request);
+            agencyDocumentRepository.save(agencyDocument);
+        }
+        historyService.insertHistory(agency,
+                AgencyOperationEnm.REGISTERED,
+                account.getCellNumber(),
+                account.getId().toString(),
+                null,
+                DateFormatUtil.getCurrentPersianDate(),
+                DateFormatUtil.getCurrentTime(),
+                request);
+        return agency;
+    }
+
+    public ResultEnm validateBeforeUpdate(AgencyReq req) {
+        if (req == null) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        if (req.getAgency() == null) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        if (ValidationUtil.isEmpty(req.getAgency().getId())) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        AgencyDto agencyDto = req.getAgency();
+        if (!agencyDto.isValid()) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        return ResultEnm.OK;
+    }
+
+    @Transactional
+    public Agency controlAndUpdate(AgencyReq req, HttpServletRequest request) {
+        if (req == null) {
+            return null;
+        }
+        if (req.getAgency() == null) {
+            return null;
+        }
+        if (ValidationUtil.isEmpty(req.getAgency().getId())) {
+            return null;
+        }
+        AgencyDto agencyDto = req.getAgency();
+        if (!agencyDto.isValid()) {
+            return null;
+        }
+        Account account = accountService.getAccountByBaseReq(req);
+        Optional<Agency> optional = repository.findById(Long.valueOf(req.getAgency().getId()));
+        if (!optional.isPresent()) {
+            return null;
+        }
+        Agency agency = optional.get();
+        agency = (Agency) agencyDto.toEntity(agency);
+        agency.setAccount(account);
+        Optional<AgencyType> agencyType = agencyTypeRepository.findById(Long.valueOf(agencyDto.getAgencyTypeId()));
+        if (!agencyType.isPresent()) {
+            return null;
+        }
+        agency.setAgencyType(agencyType.get());
+        Optional<Region> region = regionRepository.findById(Long.valueOf(agencyDto.getRegionId()));
+        if (!region.isPresent()) {
+            return null;
+        }
+        agency.setAgencyState(AgencyStateEnm.REGISTERED);
+        account.setAccountType(AccountTypeEnm.AGNC);
+        accountRepository.save(account);
+        agency.setRegion(region.get());
+        agency = repository.save(agency);
+
+        List<AgencyDocument> oldDocs = agencyDocumentRepository.findByAgencyAndIsActiveAndIsAlive(agency, Boolean.TRUE, Boolean.TRUE);
+        if (!oldDocs.isEmpty()) {
+            for (AgencyDocument ad : oldDocs) {
+                Document document = documentRepository.findById(ad.getDocId()).get();
+                documentRepository.delete(document);
+                agencyDocumentRepository.delete(ad);
+            }
+        }
+        for (AgencyDocumentDto d : agencyDto.getDocuments()) {
+            Document document = (Document) d.getDocument().toEntity();
+            document = documentRepository.save(document);
+            AgencyDocument agencyDocument = new AgencyDocument();
+            agencyDocument.setType(AgencyDocTypeEnm.valueOf(d.getDocType()));
+            agencyDocument.setDocId(document.getId());
+            agencyDocument.setAgency(agency);
+            agencyDocument.setIsActive(Boolean.TRUE);
+            agencyDocument.setIsAlive(Boolean.TRUE);
+            agencyDocument = (AgencyDocument) logEntity(agencyDocument, request);
+            agencyDocumentRepository.save(agencyDocument);
+        }
+        historyService.insertHistory(agency,
+                AgencyOperationEnm.REGISTERED,
+                account.getCellNumber(),
+                account.getId().toString(),
+                null,
+                DateFormatUtil.getCurrentPersianDate(),
+                DateFormatUtil.getCurrentTime(),
+                request);
+        return agency;
+    }
+
+    public List<AgencyType> getAgencyTypes(BaseReq req) {
+        return agencyTypeRepository.findByIsActiveAndIsAlive(Boolean.TRUE, Boolean.TRUE);
+    }
+
+    public Page<Agency> getAgencies(AgencyReq req) {
+
+        Agency agency = new Agency();
+
+        Integer page = 1;
+        Integer rows = 10;
+        if (!ValidationUtil.isEmpty(req.getPn())) {
+            page = Integer.valueOf(req.getPn());
+        }
+        if (!ValidationUtil.isEmpty(req.getPl())) {
+            rows = Integer.valueOf(req.getPl());
+        }
+
+        Page<Agency> agencies = repository.findAll(
+                Example.of(agency,
+                        ExampleMatcher.matching()
+                                .withStringMatcher(StringMatcher.CONTAINING)
+                                .withIgnoreCase()),
+                PageRequest.of(page - 1, rows, Sort.by("id").descending()));
+        return agencies;
+    }
+
+    public AgencyDto getAgencyInfo(BaseReq req, HttpServletRequest request) {
+        Account account = accountService.getAccountByBaseReq(req);
+        Agency agency = agencyRepository.findByIsActiveAndIsAliveAndAccount(Boolean.TRUE, Boolean.TRUE, account);
+        AgencyDto agencyDto = new AgencyDto();
+        if (agency == null) {
+            return agencyDto;
+        }
+        List<AgencyDocument> documents = agencyDocumentService.getDocumentsFromAgency(agency);
+
+        AgencyDocumentDto[] agencyDocumentDtos = new AgencyDocumentDto[documents.size()];
+        int cntr = 0;
+        for (AgencyDocument d : documents) {
+            AgencyDocumentDto agencyDocumentDto = new AgencyDocumentDto();
+            Optional<Document> document = documentRepository.findById(d.getDocId());
+            if (!document.isPresent()) {
+                return null;
+            }
+            DocumentDto documentDto = new DocumentDto();
+            agencyDocumentDto.fromEntity(d);
+            agencyDocumentDto.setDocType(d.getType().name());
+            documentDto.fromEntity(document.get());
+            agencyDocumentDto.setDocument(documentDto);
+            agencyDocumentDtos[cntr++] = agencyDocumentDto;
+        }
+        agencyDto.fromEntity(agency);
+        agencyDto.setDocuments(agencyDocumentDtos);
+        return agencyDto;
+    }
+
+    public ResultEnm validateBeforeConfirm(AgencyReq req) {
+        if (req == null) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        if (req.getAgency() == null) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        if (ValidationUtil.isEmpty(req.getAgency().getId())) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        return ResultEnm.OK;
+    }
+
+    @Transactional
+    public Agency controlAndConfirm(AgencyReq req, HttpServletRequest request) {
+        if (req == null) {
+            return null;
+        }
+        if (req.getAgency() == null) {
+            return null;
+        }
+        if (ValidationUtil.isEmpty(req.getAgency().getId())) {
+            return null;
+        }
+        Optional<Agency> optional = repository.findById(Long.valueOf(req.getAgency().getId()));
+        if (!optional.isPresent()) {
+            return null;
+        }
+        User user = getUserByToken(request);
+        Agency agency = optional.get();
+        Account account = agency.getAccount();
+        account.setAccountType(AccountTypeEnm.AGNC);
+        accountRepository.save(account);
+        agency.setAgencyState(AgencyStateEnm.CONFIRMED);
+        agency = (Agency) logEntity(agency, request);
+        historyService.insertHistory(agency,
+                AgencyOperationEnm.CONFIRMED,
+                user.getUsername(),
+                user.getId().toString(),
+                null,
+                DateFormatUtil.getCurrentPersianDate(),
+                DateFormatUtil.getCurrentTime(),
+                request);
+        return repository.save(agency);
+    }
+
+    public ResultEnm validateBeforeReject(AgencyReq req) {
+        if (req == null) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        if (req.getAgency() == null) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        if (ValidationUtil.isEmpty(req.getAgency().getId())) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        if (ValidationUtil.isEmpty(req.getAgency().getAdminComment())) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        return ResultEnm.OK;
+    }
+
+    @Transactional
+    public Agency controlAndReject(AgencyReq req, HttpServletRequest request) {
+        if (req == null) {
+            return null;
+        }
+        if (req.getAgency() == null) {
+            return null;
+        }
+        if (ValidationUtil.isEmpty(req.getAgency().getId())) {
+            return null;
+        }
+        if (ValidationUtil.isEmpty(req.getAgency().getAdminComment())) {
+            return null;
+        }
+        Optional<Agency> optional = repository.findById(Long.valueOf(req.getAgency().getId()));
+        if (!optional.isPresent()) {
+            return null;
+        }
+        User user = getUserByToken(request);
+        Agency agency = optional.get();
+        agency.setAgencyState(AgencyStateEnm.REJECTED);
+        agency.setAdminComment(req.getAgency().getAdminComment());
+        agency = (Agency) logEntity(agency, request);
+        historyService.insertHistory(agency,
+                AgencyOperationEnm.REJECTED,
+                user.getUsername(),
+                user.getId().toString(),
+                null,
+                DateFormatUtil.getCurrentPersianDate(),
+                DateFormatUtil.getCurrentTime(),
+                request);
+        return repository.save(agency);
+    }
+
+    public ResultEnm validateBeforeDeactive(AgencyReq req) {
+        if (req == null) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        if (req.getAgency() == null) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        if (ValidationUtil.isEmpty(req.getAgency().getId())) {
+            return ResultEnm.INVALID_INPUT;
+        }
+        return ResultEnm.OK;
+    }
+
+    @Transactional
+    public Agency controlAndDeactive(AgencyReq req, HttpServletRequest request) {
+        if (req == null) {
+            return null;
+        }
+        if (req.getAgency() == null) {
+            return null;
+        }
+        if (ValidationUtil.isEmpty(req.getAgency().getId())) {
+            return null;
+        }
+        Optional<Agency> optional = repository.findById(Long.valueOf(req.getAgency().getId()));
+        if (!optional.isPresent()) {
+            return null;
+        }
+        User user = getUserByToken(request);
+        Agency agency = optional.get();
+        agency.setAgencyState(AgencyStateEnm.DEACTIVE);
+        agency = (Agency) logEntity(agency, request);
+        historyService.insertHistory(agency,
+                AgencyOperationEnm.DEACTIVE,
+                user.getUsername(),
+                user.getId().toString(),
+                null,
+                DateFormatUtil.getCurrentPersianDate(),
+                DateFormatUtil.getCurrentTime(),
+                request);
+        return repository.save(agency);
+    }
+}
