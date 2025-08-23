@@ -1,27 +1,18 @@
-# Base image
-FROM eclipse-temurin:17-jdk
+FROM eclipse-temurin:8-jdk
 
-# Set working directory
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml separately for caching
 COPY mvnw mvnw
-RUN chmod +x mvnw   # 👈 اول اینجا مجوز بدیم
-
 COPY .mvn .mvn
 COPY pom.xml pom.xml
 
-# Download dependencies
+RUN chmod +x mvnw
 RUN ./mvnw dependency:go-offline -B
 
-# Copy the rest of the source code
 COPY src src
 
-# Build the project (skip tests)
 RUN ./mvnw clean package -DskipTests
 
-# Expose the port your Spring Boot app uses
 EXPOSE 8080
 
-# Run the jar
-CMD ["java", "-jar", "target/pelaksefid-0.0.1-SNAPSHOT.jar"]
+CMD ["java", "-jar", "target/PelakSefid-2.0.0.jar"]
