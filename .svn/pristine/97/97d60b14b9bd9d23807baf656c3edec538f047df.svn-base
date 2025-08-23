@@ -1,0 +1,68 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package ir.aria.pelaksefid.domain.entity;
+
+import ir.aria.pelaksefid.domain.entity.base.Base;
+import ir.aria.pelaksefid.domain.enumaration.AdvertiseStateEnm;
+import java.math.BigDecimal;
+import java.util.Set;
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
+import javax.persistence.Index;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+import javax.persistence.SequenceGenerator;
+import javax.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+
+/**
+ *
+ * @author Mana2
+ */
+@Getter
+@Setter
+@Entity
+@SequenceGenerator(initialValue = 1, name = "idgenerator", sequenceName = "PS_ADVERTISES_SEQ", allocationSize = 1)
+@Table(name = "PS_ADVERTISES",
+        indexes = {
+            @Index(name = "IDX_PS_ADVERTISES_001", columnList = "PS_ACCOUNT_ID"),
+            @Index(name = "IDX_PS_ADVERTISES_002", columnList = "PS_CAR_ID"),
+            @Index(name = "IDX_PS_ADVERTISES_003", columnList = "PS_REGION_ID")})
+public class Advertise extends Base {
+
+    @Column(name = "PRICE")
+    private BigDecimal price;
+    @Column(name = "Ad_COMMENT")
+    private String comment;
+    @Column(name = "SIGMA")
+    private Boolean sigma;
+    @Column(name = "SIGMA_ID")
+    private Long sigmaId;
+
+    @JoinColumn(name = "ADVERTISE_STATE")
+    @Enumerated(EnumType.STRING)
+    private AdvertiseStateEnm advertiseState;
+
+    @ManyToOne
+    @JoinColumn(name = "PS_ACCOUNT_ID")
+    private Account account;
+
+    @ManyToOne
+    @JoinColumn(name = "PS_CAR_ID")
+    private Car car;
+
+    @ManyToOne
+    @JoinColumn(name = "PS_REGION_ID")
+    private Region region;
+
+    @OneToMany(cascade = {CascadeType.DETACH, CascadeType.MERGE, CascadeType.PERSIST, CascadeType.REFRESH}, mappedBy = "advertise", fetch = FetchType.LAZY)
+    private Set<AdvertiseDocument> advertiseDocuments;
+}

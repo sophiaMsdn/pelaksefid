@@ -1,0 +1,290 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package ir.aria.pelaksefid.domain.repository.custom;
+
+import ir.aria.pelaksefid.domain.query.model.AdvertiseFilter;
+import ir.aria.pelaksefid.domain.query.model.AdvertiseModel;
+import ir.aria.pelaksefid.utility.ValidationUtil;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Repository;
+
+/**
+ *
+ * @author Mana2
+ */
+@Repository
+public class AdvertiseRepositoryCustomImpl implements AdvertiseRepositoryCustom {
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    @Override
+    public Page<AdvertiseModel> getAdvertisesByFilter(AdvertiseFilter filter, Pageable pageRequest) {
+
+        try {
+            String query = getAdvertiseQueryWithFilter(filter);
+            String queryForCounting = getAdvertiseQueryWithFilterForCounting(filter);
+
+            query = " select * from ( " + query + " ) where rn between :from and :to ";
+
+            Query sqlQuery = entityManager.createNativeQuery(query);
+            Query sqlQueryForCounting = entityManager.createNativeQuery(queryForCounting);
+
+            if (!ValidationUtil.isEmpty(filter.getAccountId())) {
+                sqlQuery.setParameter("accountId", filter.getAccountId());
+                sqlQueryForCounting.setParameter("accountId", filter.getAccountId());
+            }
+            if (filter.getBrandIds() != null) {
+                sqlQuery.setParameter("brandIds", Arrays.asList(filter.getBrandIds()));
+                sqlQueryForCounting.setParameter("brandIds", Arrays.asList(filter.getBrandIds()));
+            }
+            if (filter.getModelIds() != null) {
+                sqlQuery.setParameter("modelIds", Arrays.asList(filter.getModelIds()));
+                sqlQueryForCounting.setParameter("modelIds", Arrays.asList(filter.getModelIds()));
+            }
+            if (filter.getTypeIds() != null) {
+                sqlQuery.setParameter("typeIds", Arrays.asList(filter.getTypeIds()));
+                sqlQueryForCounting.setParameter("typeIds", Arrays.asList(filter.getTypeIds()));
+            }
+            if (filter.getCityIds() != null) {
+                sqlQuery.setParameter("cityIds", Arrays.asList(filter.getCityIds()));
+                sqlQueryForCounting.setParameter("cityIds", Arrays.asList(filter.getCityIds()));
+            }
+            if (!ValidationUtil.isEmpty(filter.getPriceFrom())) {
+                sqlQuery.setParameter("priceFrom", filter.getPriceFrom());
+                sqlQueryForCounting.setParameter("priceFrom", filter.getPriceFrom());
+            }
+            if (!ValidationUtil.isEmpty(filter.getPriceTo())) {
+                sqlQuery.setParameter("priceTo", filter.getPriceTo());
+                sqlQueryForCounting.setParameter("priceTo", filter.getPriceTo());
+            }
+            if (!ValidationUtil.isEmpty(filter.getMileageFrom())) {
+                sqlQuery.setParameter("mileageFrom", filter.getMileageFrom());
+                sqlQueryForCounting.setParameter("mileageFrom", filter.getMileageFrom());
+            }
+            if (!ValidationUtil.isEmpty(filter.getMileageTo())) {
+                sqlQuery.setParameter("mileageTo", filter.getMileageTo());
+                sqlQueryForCounting.setParameter("mileageTo", filter.getMileageTo());
+            }
+            if (!ValidationUtil.isEmpty(filter.getManufactureFrom())) {
+                sqlQuery.setParameter("manufactureFrom", filter.getManufactureFrom());
+                sqlQueryForCounting.setParameter("manufactureFrom", filter.getManufactureFrom());
+            }
+            if (!ValidationUtil.isEmpty(filter.getManufactureTo())) {
+                sqlQuery.setParameter("manufactureTo", filter.getManufactureTo());
+                sqlQueryForCounting.setParameter("manufactureTo", filter.getManufactureTo());
+            }
+            if (filter.getCityIds() != null) {
+                sqlQuery.setParameter("cityIds", Arrays.asList(filter.getCityIds()));
+                sqlQueryForCounting.setParameter("cityIds", Arrays.asList(filter.getCityIds()));
+            }
+            if (filter.getColorIds() != null) {
+                sqlQuery.setParameter("colorIds", Arrays.asList(filter.getColorIds()));
+                sqlQueryForCounting.setParameter("colorIds", Arrays.asList(filter.getColorIds()));
+            }
+            if (filter.getBodyStatusIds() != null) {
+                sqlQuery.setParameter("bodyStatudsIds", Arrays.asList(filter.getBodyStatusIds()));
+                sqlQueryForCounting.setParameter("bodyStatudsIds", Arrays.asList(filter.getBodyStatusIds()));
+            }
+            if (filter.getGearIds() != null) {
+                sqlQuery.setParameter("gearIds", Arrays.asList(filter.getGearIds()));
+                sqlQueryForCounting.setParameter("gearIds", Arrays.asList(filter.getGearIds()));
+            }
+            if (filter.getCylinderIds() != null) {
+                sqlQuery.setParameter("cylinderIds", Arrays.asList(filter.getCylinderIds()));
+                sqlQueryForCounting.setParameter("cylinderIds", Arrays.asList(filter.getCylinderIds()));
+            }
+            if (filter.getDifferentialIds() != null) {
+                sqlQuery.setParameter("differentialIds", Arrays.asList(filter.getDifferentialIds()));
+                sqlQueryForCounting.setParameter("differentialIds", Arrays.asList(filter.getDifferentialIds()));
+            }
+            if (filter.getEngineIds() != null) {
+                sqlQuery.setParameter("engineIds", Arrays.asList(filter.getEngineIds()));
+                sqlQueryForCounting.setParameter("engineIds", Arrays.asList(filter.getEngineIds()));
+            }
+            if (filter.getOriginIds() != null) {
+                sqlQuery.setParameter("originIds", Arrays.asList(filter.getOriginIds()));
+                sqlQueryForCounting.setParameter("originIds", Arrays.asList(filter.getOriginIds()));
+            }
+            if (filter.getBodyIds() != null) {
+                sqlQuery.setParameter("bodyIds", Arrays.asList(filter.getBodyIds()));
+                sqlQueryForCounting.setParameter("bodyIds", Arrays.asList(filter.getBodyIds()));
+            }
+            if (filter.getFuelIds() != null) {
+                sqlQuery.setParameter("fuelIds", Arrays.asList(filter.getFuelIds()));
+                sqlQueryForCounting.setParameter("fuelIds", Arrays.asList(filter.getFuelIds()));
+            }
+            if (filter.getStates() != null) {
+                sqlQuery.setParameter("states", Arrays.asList(filter.getStates()));
+                sqlQueryForCounting.setParameter("states", Arrays.asList(filter.getStates()));
+            }
+            if (!ValidationUtil.isEmpty(filter.getSigma())) {
+                sqlQuery.setParameter("sigma", filter.getSigma());
+                sqlQueryForCounting.setParameter("sigma", filter.getSigma());
+            }
+            Integer from = pageRequest.getPageNumber() * pageRequest.getPageSize() + 1;
+            Integer to = from + pageRequest.getPageSize() - 1;
+            sqlQuery.setParameter("from", String.valueOf(from));
+            sqlQuery.setParameter("to", String.valueOf(to));
+
+            List<Object[]> objects = sqlQuery.getResultList();
+            List<AdvertiseModel> models = new ArrayList<>();
+            for (Object[] object : objects) {
+                AdvertiseModel model = new AdvertiseModel(object);
+                models.add(model);
+            }
+
+            long count = Long.valueOf(String.valueOf(sqlQueryForCounting.getSingleResult()));
+
+            Page<AdvertiseModel> result = new PageImpl<>(models, pageRequest, count);
+            return result;
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private String getAdvertiseQueryWithFilter(AdvertiseFilter filter) {
+        String filterQuery = (filter.getTypeIds() != null ? " and ct.id in (:typeIds) " : "")
+                + (filter.getBrandIds() != null ? " and b.id in (:brandIds) " : "")
+                + (filter.getModelIds() != null ? " and cm.id in (:modelIds) " : "")
+                + (filter.getCityIds() != null ? " and cty.id in (:cityIds) " : "")
+                + (!ValidationUtil.isEmpty(filter.getPriceFrom()) ? " and a.price >= :priceFrom " : "")
+                + (!ValidationUtil.isEmpty(filter.getPriceTo()) ? " and a.price <= :priceTo " : "")
+                + (!ValidationUtil.isEmpty(filter.getManufactureFrom()) ? " and my.persian_year >= :manufactureFrom " : "")
+                + (!ValidationUtil.isEmpty(filter.getManufactureTo()) ? " and my.persian_year <= :manufactureTo " : "")
+                + (!ValidationUtil.isEmpty(filter.getMileageFrom()) ? " and c.mileage >= :mileageFrom " : "")
+                + (!ValidationUtil.isEmpty(filter.getMileageTo()) ? " and c.mileage <= :mileageTo " : "")
+                + (filter.getBodyIds() != null ? " and cb.id in (:bodyIds) " : "")
+                + (filter.getColorIds() != null ? " and c.ps_car_color_id in (:colorIds) " : "")
+                + (filter.getBodyStatusIds() != null ? " and c.ps_car_body_status_id in (:bodyStatudsIds) " : "")
+                + (filter.getGearIds() != null ? " and ct.ps_car_gear_id in (:gearIds) " : "")
+                + (filter.getCylinderIds() != null ? " and ct.ps_car_cylinder_id in (:cylinderIds) " : "")
+                + (filter.getDifferentialIds() != null ? " and ct.ps_car_differential_id in (:differentialIds) " : "")
+                + (filter.getEngineIds() != null ? " and ct.ps_car_engine_id in (:engineIds) " : "")
+                + (filter.getOriginIds() != null ? " and ct.ps_car_origin_id in (:originIds) " : "")
+                + (filter.getStates() != null ? " and a.advertise_state in (:states) " : "")
+                + (!ValidationUtil.isEmpty(filter.getAccountId()) ? " and ac.id = :accountId " : "")
+                + (!ValidationUtil.isEmpty(filter.getSigma()) ? " and a.sigma = :sigma " : "")
+                + (filter.getFuelIds() != null ? " and ct.id in (select f.id from ps_car_type_fuels f join ps_car_types ct on f.ps_car_type_id = ct.id where f.id in (:fuelIds))" : "");
+
+        String query = " select "
+                + " a.id id,"
+                + " ac.cell_number accountCellNumber,"
+                + " a.sigma sigma,"
+                + " ct.description carType,"
+                + " cm.persian_name carModel,"
+                + " b.persian_name brand,"
+                + " my.persian_year persianYear,"
+                + " my.miladi_year miladiYear,"
+                + " c.mileage mileage,"
+                + " g.persian_name gear,"
+                + " a.price price,"
+                + " r.description region,"
+                + " cty.description city,"
+                + " p.description province,"
+                + " a.ad_comment adComment,"
+                + " a.advertise_state advertiseState,"
+                + " docs.info documents,"
+                + " sigmaDocs.info sigmaDocuments,"
+                + " bs.description bodyStatus,"
+                + " to_char(a.reg_date,'yyyy/mm/dd','nls_calendar=persian') registerDate,"
+                + " to_char(a.update_date,'yyyy/mm/dd','nls_calendar=persian') updateDate,"
+                + " cc.persian_name color,"
+                + " ctc.persian_name trimColor,"
+                + " cys.persian_name cylinder,"
+                + " dif.persian_name differential,"
+                + " row_number() over (order by a.id desc) rn"
+                + " from ps_advertises a"
+                + " left join ps_accounts ac on a.ps_account_id = ac.id"
+                + " left join ps_cars c on a.ps_car_id = c.id"
+                + " left join ps_car_types ct on c.ps_car_type_id = ct.id"
+                + " left join ps_car_models cm on ct.ps_car_model_id = cm.id"
+                + " left join ps_brands b on cm.ps_brand_id = b.id"
+                + " left join ps_manufacture_years my on c.ps_manufacture_year_id = my.id"
+                + " left join ps_car_gears g on ct.ps_car_gear_id = g.id"
+                + " left join ps_regions r on a.ps_region_id = r.id"
+                + " left join ps_regions cty on r.ps_parent_id = cty.id"
+                + " left join ps_regions p on cty.ps_parent_id = p.id"
+                + " left join ps_car_bodies cb on ct.ps_car_body_id = cb.id"
+                + " left join ps_car_colors cc on c.ps_car_color_id = cc.id"
+                + " left join ps_car_trim_colors ctc on c.ps_car_trim_color_id = ctc.id"
+                + " left join ps_car_cylinders cys on ct.ps_car_cylinder_id = cys.id"
+                + " left join ps_car_differentials dif on ct.ps_car_differential_id = dif.id"
+                + " left join ps_car_body_statuses bs on c.ps_car_body_status_id = bs.id"
+                + " left join (select"
+                + " ad.ps_advertise_id aId,"
+                + " rtrim(xmlagg(xmlelement(E, d.id || '*' || d.file_type, '|')"
+                + " .extract('//text()') order by d.id || '*' || d.file_type)"
+                + " .getclobval(), '|') info"
+                + " from ps_advertise_documents ad"
+                + " left join ps_documents d on ad.document_id = d.id"
+                + " where ad.is_active = 1"
+                + " and ad.is_alive = 1"
+                + " and d.is_active = 1"
+                + " and d.is_alive = 1"
+                + " group by ad.ps_advertise_id) docs on a.id = docs.aId and a.sigma = 0"
+                + " left join (select ad.ps_advertise_id aId,"
+                + " rtrim(xmlagg(xmlelement(E, ad.id || '*' || ad.document_id, '|')"
+                + " .extract('//text()') order by ad.id || '*' || ad.document_id)"
+                + " .getclobval(), '|') info"
+                + " from ps_advertise_documents ad"
+                + " where ad.is_active = 1 and ad.is_alive = 1 group by ad.ps_advertise_id)"
+                + " sigmaDocs on a.id = sigmaDocs.aId and a.sigma = 1"
+                + " where a.is_active = 1 and a.is_alive = 1"
+                + filterQuery;
+        return query;
+    }
+
+    private String getAdvertiseQueryWithFilterForCounting(AdvertiseFilter filter) {
+        String filterQuery = (filter.getTypeIds() != null ? " and ct.id in (:typeIds) " : "")
+                + (filter.getCityIds() != null ? " and cty.id in (:cityIds) " : "")
+                + (!ValidationUtil.isEmpty(filter.getPriceFrom()) ? " and a.price >= :priceFrom " : "")
+                + (!ValidationUtil.isEmpty(filter.getPriceTo()) ? " and a.price <= :priceTo " : "")
+                + (!ValidationUtil.isEmpty(filter.getManufactureFrom()) ? " and my.persian_year >= :manufactureFrom " : "")
+                + (!ValidationUtil.isEmpty(filter.getManufactureTo()) ? " and my.persian_year <= :manufactureTo " : "")
+                + (!ValidationUtil.isEmpty(filter.getMileageFrom()) ? " and c.mileage >= :mileageFrom " : "")
+                + (!ValidationUtil.isEmpty(filter.getMileageTo()) ? " and c.mileage <= :mileageTo " : "")
+                + (filter.getBodyIds() != null ? " and cb.id in (:bodyIds) " : "")
+                + (filter.getColorIds() != null ? " and c.ps_car_color_id in (:colorIds) " : "")
+                + (filter.getBodyStatusIds() != null ? " and c.ps_car_body_status_id in (:bodyStatudsIds) " : "")
+                + (filter.getGearIds() != null ? " and ct.ps_car_gear_id in (:gearIds) " : "")
+                + (filter.getCylinderIds() != null ? " and ct.ps_car_cylinder_id in (:cylinderIds) " : "")
+                + (filter.getDifferentialIds() != null ? " and ct.ps_car_differential_id in (:differentialIds) " : "")
+                + (filter.getEngineIds() != null ? " and ct.ps_car_engine_id in (:engineIds) " : "")
+                + (filter.getOriginIds() != null ? " and ct.ps_car_origin_id in (:originIds) " : "")
+                + (!ValidationUtil.isEmpty(filter.getAccountId()) ? " and ac.id = :accountId " : "")
+                + (!ValidationUtil.isEmpty(filter.getSigma()) ? " and a.sigma = :sigma " : "")
+                + (filter.getStates() != null ? " and a.advertise_state in (:states) " : "")
+                + (filter.getFuelIds() != null ? " and ct.id in (select f.id from ps_car_type_fuels f join ps_car_types ct on f.ps_car_type_id = ct.id where f.id in (:fuelIds))" : "");
+
+        String query = " select "
+                + " count(a.id)"
+                + " from ps_advertises a"
+                + " left join ps_accounts ac on a.ps_account_id = ac.id"
+                + " left join ps_cars c on a.ps_car_id = c.id"
+                + " left join ps_car_types ct on c.ps_car_type_id = ct.id"
+                + " left join ps_car_models cm on ct.ps_car_model_id = cm.id"
+                + " left join ps_brands b on cm.ps_brand_id = b.id"
+                + " left join ps_manufacture_years my on c.ps_manufacture_year_id = my.id"
+                + " left join ps_car_gears g on ct.ps_car_gear_id = g.id"
+                + " left join ps_regions r on a.ps_region_id = r.id"
+                + " left join ps_regions cty on r.ps_parent_id = cty.id"
+                + " left join ps_regions p on cty.ps_parent_id = p.id"
+                + " left join ps_car_bodies cb on ct.ps_car_body_id = cb.id"
+                + " left join ps_car_colors cc on c.ps_car_color_id = cc.id"
+                + " left join ps_car_trim_colors ctc on c.ps_car_trim_color_id = ctc.id"
+                + " where a.is_active = 1 and a.is_alive = 1"
+                + filterQuery;
+        return query;
+    }
+}

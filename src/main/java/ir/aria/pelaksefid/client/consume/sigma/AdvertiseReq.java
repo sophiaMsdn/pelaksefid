@@ -1,0 +1,28 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package ir.aria.pelaksefid.client.consume.sigma;
+
+import lombok.Getter;
+import lombok.Setter;
+
+/**
+ *
+ * @author Mana2
+ */
+@Getter
+@Setter
+public class AdvertiseReq {
+
+    private String brandIds;
+    private String carModelIds;
+    private String carTypeIds;
+    private String colorIds;
+    private String fromAmount;
+    private String toAmount;
+    private String fromYear;
+    private String toYear;
+    private String fromMileage;
+    private String toMileage;
+}
