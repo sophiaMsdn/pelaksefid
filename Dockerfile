@@ -23,3 +23,4 @@ EXPOSE 8080
 
 # Run the jar
 CMD ["java", "-jar", "target/pelaksefid-0.0.1-SNAPSHOT.jar"]
+RUN chmod +x mvnw
