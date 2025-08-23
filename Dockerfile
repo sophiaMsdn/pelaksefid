@@ -6,6 +6,8 @@ WORKDIR /app
 
 # Copy Maven wrapper and pom.xml separately for caching
 COPY mvnw mvnw
+RUN chmod +x mvnw   # 👈 اول اینجا مجوز بدیم
+
 COPY .mvn .mvn
 COPY pom.xml pom.xml
 
@@ -23,4 +25,3 @@ EXPOSE 8080
 
 # Run the jar
 CMD ["java", "-jar", "target/pelaksefid-0.0.1-SNAPSHOT.jar"]
-RUN chmod +x mvnw
