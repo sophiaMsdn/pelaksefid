@@ -74,7 +74,8 @@ public class JobService {
     private AdvertiseDocumentRepository advertiseDocumentRepository;
 
     @Transactional
-    @Scheduled(cron = "0 1/3 * * * *")
+    @Scheduled(cron = "0 0 0/2 * * *")
+//    @Scheduled(cron = "0 1/2 * * * *")
     public void getSigmaAdvertises() {
         getSigmaAdvertisesInternal();
     }
@@ -191,7 +192,10 @@ public class JobService {
                 advertise.setRegDate(new Date());
                 advertise.setUpdateDate(new Date());
                 advertise = advertiseRepository.save(advertise);
-
+                List<AdvertiseDocument> oldDocs = advertiseDocumentRepository.findByIsActiveAndIsAliveAndAdvertise(Boolean.TRUE, Boolean.TRUE, advertise);
+                for (AdvertiseDocument a : oldDocs) {
+                    advertiseDocumentRepository.delete(a);
+                }
                 for (ir.aria.pelaksefid.client.consume.sigma.Document d : ad.getSalesOrderDocuments()) {
                     AdvertiseDocument advertiseDocument = new AdvertiseDocument();
                     advertiseDocument.setDocId(Long.valueOf(d.getDocId()));

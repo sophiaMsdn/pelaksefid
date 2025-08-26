@@ -4,42 +4,12 @@ import ir.aria.pelaksefid.client.SigmaServiceClient;
 import ir.aria.pelaksefid.client.consume.sigma.Advertise;
 import ir.aria.pelaksefid.client.consume.sigma.AdvertiseRes;
 import ir.aria.pelaksefid.client.consume.sigma.Document;
-import ir.aria.pelaksefid.client.consume.sigma.ManaPrice;
-import ir.aria.pelaksefid.client.consume.sigma.ManaPriceRes;
 import ir.aria.pelaksefid.utility.ValidationUtil;
 import ir.aria.pelaksefid.web.v1.model.request.AdvertiseFilterReq;
-import ir.aria.pelaksefid.web.v1.model.request.base.BaseListReq;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.X509Certificate;
-import java.text.NumberFormat;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import lombok.Getter;
 import lombok.Setter;
 import net.coobird.thumbnailator.Thumbnails;
-import okhttp3.HttpUrl;
-import okhttp3.MultipartBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import okhttp3.*;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -47,77 +17,51 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 
+import java.io.*;
+import java.nio.file.Files;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
+import java.text.NumberFormat;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.*;
+
 @Component
 public class TelegramClient {
 
-//    // <editor-fold defaultstate="collapsed" desc="disableSslVerification">
-//    static {
-//        disableSslVerification();
-//    }
-//
-//    private static void disableSslVerification() {
-//        try {
-//            // Create a trust manager that does not validate certificate chains
-//            TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
-//
-//                public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-//                    return null;
-//                }
-//
-//                public void checkClientTrusted(X509Certificate[] certs, String authType) {
-//                }
-//
-//                public void checkServerTrusted(X509Certificate[] certs, String authType) {
-//                }
-//            }
-//            };
-//
-//            // Install the all-trusting trust manager
-//            SSLContext sc = SSLContext.getInstance("SSL");
-//            sc.init(null, trustAllCerts, new java.security.SecureRandom());
-//            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-//
-//            // Create all-trusting host name verifier
-//            HostnameVerifier allHostsValid = new HostnameVerifier() {
-//
-//                public boolean verify(String hostname, SSLSession session) {
-//                    return true;
-//                }
-//            };
-//
-//            // Install the all-trusting host verifier
-//            HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
-//        } catch (NoSuchAlgorithmException e) {
-//            e.printStackTrace();
-//        } catch (KeyManagementException e) {
-//            e.printStackTrace();
-//        }
-//    }
-//    // </editor-fold> 
-    private static final String SIGMA_BASE = System.getenv().getOrDefault("SIGMA_BASE", "https://sigmatec.ir:8083");
+    // ─────────────── ثابت‌ها ───────────────
+    private static final String SIGMA_BASE
+            = System.getenv().getOrDefault("SIGMA_BASE", "https://sigmatec.ir:8083");
 
-    private static final String TELEGRAM_TOKEN = System.getenv().getOrDefault("TELEGRAM_BOT_TOKEN", "REPLACE_ME");
-    private static final String TELEGRAM_CHAT_ID = System.getenv().getOrDefault("TELEGRAM_CHAT_ID", "@sigmatec_ir");
+    private static final String TELEGRAM_TOKEN = "6551007913:AAFY0fYkNsY37LnKhOEzPs1z6347HFXAEBQ";
 
-    private static final String TELEGRAM_ROUTE_API_KEY = System.getenv().getOrDefault("ADVERTISE_TO_TELEGRAM_API_KEY", "telegram_bot_sender");
+    private static final String TELEGRAM_CHAT_ID = "@sigmatec_ir";
+
+    private static final String TELEGRAM_ROUTE_API_KEY
+            = System.getenv().getOrDefault("ADVERTISE_TO_TELEGRAM_API_KEY", "telegram_bot_sender");
 
     private static OkHttpClient UNSAFE_HTTP;
 
     static {
         try {
             UNSAFE_HTTP = buildUnsafeOkHttp();
-        } catch (KeyManagementException | NoSuchAlgorithmException e) {
+        } catch (Exception e) {
             UNSAFE_HTTP = new OkHttpClient();
         }
     }
 
-    private static final OkHttpClient createSimpleClient() {
+    private static OkHttpClient createSimpleClient() {
         return new OkHttpClient.Builder()
                 .connectTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(120, TimeUnit.SECONDS)
+                .writeTimeout(120, TimeUnit.SECONDS)
                 .build();
     }
 
+    // ─────────────── وظیفه‌ی زمان‌بندی‌شده ───────────────
     @Transactional
     @Scheduled(cron = "0 1/2 * * * *")
     public void advertiseToTelegram() {
@@ -127,16 +71,8 @@ public class TelegramClient {
             e.printStackTrace();
         }
     }
-//
-//    @Transactional
-//    @Scheduled(cron = "0 1/2 * * * *")
-//    public void sendPriceToTelegram() {
-//        try {
-//            priceToTelegram(TELEGRAM_ROUTE_API_KEY);
-//        } catch (Exception e) {
-//        }
-//    }
 
+    // ─────────────── گرفتن آگهی‌ها از سیگما ───────────────
     private List<SalesOrder> getSalesOrders() throws IOException {
         AdvertiseFilterReq req = new AdvertiseFilterReq();
         AdvertiseRes ads = SigmaServiceClient.getAllAdvertises(req);
@@ -144,97 +80,110 @@ public class TelegramClient {
         List<SalesOrder> out = new ArrayList<>();
         if (ads != null) {
             for (Advertise n : ads.getSalesOrders()) {
-                SalesOrderDocument[] docs = new SalesOrderDocument[n.getSalesOrderDocuments().length];
-                Document[] d = n.getSalesOrderDocuments();
-                int cntr = 0;
-                if (d != null) {
-                    for (Document di : d) {
+                List<SalesOrderDocument> docs = new ArrayList<>();
+                if (n.getSalesOrderDocuments() != null) {
+                    for (Document di : n.getSalesOrderDocuments()) {
                         SalesOrderDocument doc = new SalesOrderDocument();
                         doc.setImage_id(di.getDocId());
-                        docs[cntr++] = (doc);
+                        docs.add(doc);
                     }
                 }
-                SalesOrder salesOrder = new SalesOrder();
-                salesOrder.setId(n.getId());
-                salesOrder.setCarModelDescription(n.getCarModelDescription());
-                salesOrder.setBrandDescription(n.getBrandDescription());
-                salesOrder.setCarTypeDescription(n.getCarTypeDescription());
-                salesOrder.setMileage(!ValidationUtil.isEmpty(n.getMileage()) ? Long.valueOf(n.getMileage()) : 0);
-                salesOrder.setMiladiYear(!ValidationUtil.isEmpty(n.getMiladiYear()) ? Long.valueOf(n.getMiladiYear()) : 0);
-                salesOrder.setPersianYear(n.getPersianYear());
-                salesOrder.setColorDescription(n.getColorDescription());
-                salesOrder.setTrimColorDescription(n.getTrimColorId());
-                salesOrder.setAdvertiseAmount(!ValidationUtil.isEmpty(n.getAdvertiseAmount()) ? Long.valueOf(n.getAdvertiseAmount()) : 0);
-                salesOrder.setCityDescription(n.getCityDescription());
-                salesOrder.setProvinceDescription(n.getProvinceDescription());
-                salesOrder.setSalesOrderDocuments(docs);
-                out.add(salesOrder);
+                SalesOrder so = new SalesOrder();
+                so.setId(n.getId());
+                so.setCarModelDescription(n.getCarModelDescription());
+                so.setBrandDescription(n.getBrandDescription());
+                so.setCarTypeDescription(n.getCarTypeDescription());
+                so.setMileage(!ValidationUtil.isEmpty(n.getMileage()) ? Long.valueOf(n.getMileage()) : 0);
+                so.setMiladiYear(!ValidationUtil.isEmpty(n.getMiladiYear()) ? Long.valueOf(n.getMiladiYear()) : 0);
+                so.setPersianYear(n.getPersianYear());
+                so.setColorDescription(n.getColorDescription());
+                so.setTrimColorDescription(n.getTrimColorId());
+                so.setAdvertiseAmount(!ValidationUtil.isEmpty(n.getAdvertiseAmount()) ? Long.valueOf(n.getAdvertiseAmount()) : 0);
+                so.setCityDescription(n.getCityDescription());
+                so.setProvinceDescription(n.getProvinceDescription());
+                so.setSalesOrderDocuments(docs.toArray(new SalesOrderDocument[0]));
+                out.add(so);
             }
         }
         return out;
     }
 
-    private boolean telegramSendPhoto(File file, String captionHtml) throws IOException {
-//        HttpUrl url = Objects.requireNonNull(HttpUrl.parse("https://api.telegram.org/bot" + TELEGRAM_TOKEN + "/sendPhoto"));
-//        MultipartBody.Builder mb = new MultipartBody.Builder().setType(MultipartBody.FORM)
-//                .addFormDataPart("chat_id", TELEGRAM_CHAT_ID)
-//                .addFormDataPart("parse_mode", "HTML")
-//                .addFormDataPart("caption", captionHtml)
-//                .addFormDataPart("photo", file.getName(), RequestBody.create(file, okhttp3.MediaType.parse("image/png")));
-//
-//        Request req = new Request.Builder().url(url).post(mb.build()).build();
-//        OkHttpClient client = new OkHttpClient.Builder()
-//                .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-//                .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-//                .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-//                .build();
-//
-//        try ( Response resp = client.newCall(req).execute()) {
-//            String body = resp.body() != null ? resp.body().string() : "no body";
-//            System.out.println("Code: " + resp.code());
-//            System.out.println("Body: " + body);
-//            return resp.isSuccessful();
-//        }
-//        
-//           try (Response resp = PROXIED_HTTP_CLIENT.newCall(req).execute()) {
-//        String body = resp.body() != null ? resp.body().string() : "no body";
-//        System.out.println("Code: " + resp.code());
-//        System.out.println("Body: " + body);
-//        return resp.isSuccessful();
-//    }
-
-        HttpUrl url = HttpUrl.parse("https://api.telegram.org/bot" + TELEGRAM_TOKEN + "/sendPhoto");
-        MultipartBody.Builder mb = new MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
+    // ─────────────── ارسال عکس به تلگرام (از طریق Proxy خودت) ───────────────
+    
+    
+    
+        private boolean telegramSendPhoto(File file, String captionHtml) throws IOException {
+        // استفاده مستقیم از Bot API
+        HttpUrl url = Objects.requireNonNull(HttpUrl.parse("https://pelaksefid-1.onrender.com/sigmatec/v1/advertise_to_telegram"));
+        MultipartBody.Builder mb = new MultipartBody.Builder().setType(MultipartBody.FORM)
                 .addFormDataPart("chat_id", TELEGRAM_CHAT_ID)
                 .addFormDataPart("parse_mode", "HTML")
                 .addFormDataPart("caption", captionHtml)
                 .addFormDataPart("photo", file.getName(), RequestBody.create(file, okhttp3.MediaType.parse("image/png")));
 
         Request req = new Request.Builder().url(url).post(mb.build()).build();
-
-        // 🔹 استفاده از کلاینت پروکسی‌شده به جای کلاینت معمولی
-        try ( Response resp = createSimpleClient().newCall(req).execute()) {
-            String body = resp.body() != null ? resp.body().string() : "no body";
-            System.out.println("Code: " + resp.code());
-            System.out.println("Body: " + body);
+        try (Response resp = new OkHttpClient().newCall(req).execute()) {
             return resp.isSuccessful();
         }
     }
 
+        
+        
+        
+        
+        
+//    private boolean telegramSendPhoto(File file, String captionHtml) {
+//        String url = "https://pelaksefid-1.onrender.com/sigmatec/v1/advertise_to_telegram";
+//
+//        if (!file.exists() || file.length() == 0) {
+//            System.err.println("File is missing or empty: " + file.getAbsolutePath());
+//            return false;
+//        }
+//
+//        try {
+//            MultipartBody.Builder mb = new MultipartBody.Builder().setType(MultipartBody.FORM)
+//                    .addFormDataPart("chat_id", TELEGRAM_CHAT_ID)
+//                    .addFormDataPart("parse_mode", "HTML")
+//                    .addFormDataPart("caption", captionHtml)
+//                    .addFormDataPart("photo", file.getName(),
+//                            RequestBody.create(file, okhttp3.MediaType.parse("image/jpeg")));
+//
+//            Request req = new Request.Builder()
+//                    .url(url)
+//                    .addHeader("X-API-KEY", TELEGRAM_ROUTE_API_KEY)
+//                    .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36")
+//                    .post(mb.build())
+//                    .build();
+//
+//            try ( Response resp = UNSAFE_HTTP.newCall(req).execute()) {
+//                if (!resp.isSuccessful()) {
+//                    System.err.println("Telegram send failed: HTTP " + resp.code() + " - " + resp.message());
+//                    System.err.println("Response body: " + (resp.body() != null ? resp.body().string() : "empty"));
+//                }
+//                return resp.isSuccessful();
+//            }
+//
+//        } catch (IOException e) {
+//            System.err.println("IOException during telegramSendPhoto: " + e.getMessage());
+//            e.printStackTrace();
+//            return false;
+//        }
+//    }
+
+    // ─────────────── دانلود و resize تصویر ───────────────
     private File downloadAndResize(String imageId) throws IOException {
         String url = SIGMA_BASE + "/documents/getImageById/" + imageId;
 
-        File tmpFile = Files.createTempFile("sig-", imageId + ".png").toFile();
-
+        File tmpFile = Files.createTempFile("sig-", imageId + ".jpeg").toFile();
+        tmpFile.length();
         Request request = new Request.Builder().url(url).build();
         try ( Response response = UNSAFE_HTTP.newCall(request).execute()) {
             if (!response.isSuccessful()) {
                 throw new IOException("Download failed: HTTP " + response.code());
             }
+            ResponseBody body = response.body();
 
-            try ( InputStream in = Objects.requireNonNull(response.body()).byteStream();  FileOutputStream out = new FileOutputStream(tmpFile)) {
-
+            try ( InputStream in = body.byteStream();  FileOutputStream out = new FileOutputStream(tmpFile)) {
                 byte[] buffer = new byte[8192];
                 int bytesRead;
                 while ((bytesRead = in.read(buffer)) != -1) {
@@ -244,7 +193,7 @@ public class TelegramClient {
         }
 
         File resizedFile = new File(tmpFile.getParentFile(),
-                tmpFile.getName().replace(".png", "-900x600.png"));
+                tmpFile.getName().replace(".jpeg", "-900x600.jpeg"));
         Thumbnails.of(tmpFile)
                 .size(900, 600)
                 .keepAspectRatio(true)
@@ -261,7 +210,8 @@ public class TelegramClient {
         return nf.format(value) + " تومان";
     }
 
-    @GetMapping(path = "/sigmatec/v1/advertise_to_telgram", produces = MediaType.APPLICATION_JSON_VALUE)
+    // ─────────────── Proxy endpoint اصلی ───────────────
+    @GetMapping(path = "/sigmatec/v1/advertise_to_telegram", produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, Object> advertiseToTelegram(@RequestHeader(name = "X-API-KEY", required = false) String apiKey) {
         Map<String, Object> res = new HashMap<>();
         try {
@@ -278,8 +228,10 @@ public class TelegramClient {
                 if (so.getSalesOrderDocuments() == null || so.getSalesOrderDocuments().length == 0) {
                     continue;
                 }
-                String imageId = so.salesOrderDocuments[0].getImage_id();
+
+                String imageId = so.getSalesOrderDocuments()[0].getImage_id();
                 File img = downloadAndResize(imageId);
+
                 String todayFa = ZonedDateTime.now(ZoneId.of("Asia/Tehran")).toLocalDate().toString();
 
                 String caption = "خودرو : <strong>" + safe(so.getBrandDescription()) + " " + safe(so.getCarModelDescription()) + "</strong>\n\n"
@@ -292,10 +244,7 @@ public class TelegramClient {
                         + "<a href='https://sigmatec.ir/purchase-car-reserve?ord-" + so.getId() + "'><blockquote>رزرو شوروم</blockquote></a>";
 
                 boolean ok = telegramSendPhoto(img, caption);
-                try {
-                    img.delete();
-                } catch (Exception ignore) {
-                }
+                img.delete();
                 if (ok) {
                     sent++;
                 }
@@ -315,101 +264,7 @@ public class TelegramClient {
         return s == null ? "-" : s;
     }
 
-    @GetMapping(path = "/sigmatec_price/v1/price_to_telegram", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Map<String, Object> priceToTelegram(@RequestHeader(name = "X-API-KEY", required = false) String apiKey) {
-        Map<String, Object> res = new HashMap<>();
-        try {
-            if (!Objects.equals(apiKey, TELEGRAM_ROUTE_API_KEY)) {
-                res.put("status", 401);
-                res.put("message", "invalid api key");
-                return res;
-            }
-            BaseListReq req = new BaseListReq();
-            req.setPl("10000");
-            req.setPn("1");
-            ManaPriceRes manaPriceRes = SigmaServiceClient.getManaPrices(req);
-
-            String updateDate = manaPriceRes.getManaPrices() != null && manaPriceRes.getManaPrices().length > 0 ? manaPriceRes.getManaPrices()[0].getUpdatePriceDate() : "";
-
-            StringBuilder sb = new StringBuilder();
-            sb.append("<strong>قیمت روز خودرو ").append(escapeHtml(updateDate)).append("</strong>\n\n");
-            for (ManaPrice c : manaPriceRes.getManaPrices()) {
-                String model = c.getCarModel();
-                String least = c.getLeastPrice();
-                String most = c.getMostPrice();
-                sb.append("<strong>").append(escapeHtml(model)).append("</strong> : <strong>")
-                        .append(escapeHtml(least)).append("-").append(escapeHtml(most)).append(" تومان</strong>\n\n");
-            }
-            sb.append("\n<strong>\"قیمت خودرو صفر، میانگین قیمت بازار با نوسان دو درصد است\"</strong>\n\n");
-            sb.append("<strong>\"هزینه های مالیات نقل و انتقال و تعویض پلاک بر عهده خریدار است\"</strong>");
-
-            File placeholder = getPlaceholderFromResources();
-            boolean ok = telegramSendPhoto(placeholder, sb.toString());
-            try {
-                placeholder.delete();
-            } catch (Exception ignore) {
-            }
-
-            res.put("status", ok ? 0 : 1);
-            res.put("message", ok ? "sent" : "failed");
-            return res;
-        } catch (Exception e) {
-            res.put("status", 500);
-            res.put("error", e.getMessage());
-            return res;
-        }
-    }
-
-    private static String escapeHtml(String s) {
-        if (s == null) {
-            return "";
-        }
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
-    }
-
-    private File getPlaceholderFromResources() throws IOException {
-        InputStream is = getClass().getResourceAsStream("/static/images/placeholder.jpeg");
-        if (is == null) {
-            throw new IOException("File not found in resources");
-        }
-
-        File tmpFile = Files.createTempFile("sig-", ".jpeg").toFile();
-        try ( FileOutputStream out = new FileOutputStream(tmpFile)) {
-            byte[] buffer = new byte[8192];
-            int bytesRead;
-            while ((bytesRead = is.read(buffer)) != -1) {
-                out.write(buffer, 0, bytesRead);
-            }
-        }
-        return tmpFile;
-    }
-
-    // ───────────────────────── Route 3: sigma_ads (اسکلت) ─────────────────────────
-    @GetMapping(path = "/sigmatec/v1/sigma_ads", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Map<String, Object> sigmaAds(@RequestHeader(name = "X-API-KEY", required = false) String apiKey) {
-        Map<String, Object> res = new HashMap<>();
-        try {
-            String SIGMA_ADS_API_KEY = System.getenv().getOrDefault("SIGMA_ADS_API_KEY",
-                    "P10DayvFEGUCfrJ50OxHTv1i5Yt8pHM1994hcHG8M9uaNL6zWipt9NRwccIqU1NcJ7c0vW2n3mbad2Qp9fCwAxrjB3tq2tIk0k6SLDc7ndjwdUXaQ6YmMGw1NDp6mJmB");
-            if (!Objects.equals(apiKey, SIGMA_ADS_API_KEY)) {
-                res.put("status", 401);
-                res.put("message", "invalid api key");
-                return res;
-            }
-
-            List<SalesOrder> orders = getSalesOrders();
-
-            res.put("status", 0);
-            res.put("count", orders.size());
-            res.put("message", "skeleton ready – implement DB persistence as needed");
-            return res;
-        } catch (Exception e) {
-            res.put("status", 500);
-            res.put("error", e.getMessage());
-            return res;
-        }
-    }
-
+    // ─────────────── OkHttp بدون SSL Check ───────────────
     private static OkHttpClient buildUnsafeOkHttp() throws NoSuchAlgorithmException, KeyManagementException {
         TrustManager[] trustAllCerts = new TrustManager[]{
             new X509TrustManager() {
@@ -424,18 +279,24 @@ public class TelegramClient {
                 }
             }
         };
+
         SSLContext sslContext = SSLContext.getInstance("SSL");
         sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
         SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-        OkHttpClient.Builder builder = new OkHttpClient.Builder();
-        builder.sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0]);
-        builder.hostnameVerifier((hostname, session) -> true);
-        return builder.build();
+
+        return new OkHttpClient.Builder()
+                .sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0])
+                .hostnameVerifier((hostname, session) -> true)
+                .connectTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(180, TimeUnit.SECONDS)
+                .writeTimeout(180, TimeUnit.SECONDS)
+                .build();
     }
 
+    // ─────────────── مدل‌ها ───────────────
     @Getter
     @Setter
-    private class SalesOrder {
+    private static class SalesOrder {
 
         private String id;
         private String carModelDescription;
@@ -454,7 +315,7 @@ public class TelegramClient {
 
     @Getter
     @Setter
-    private class SalesOrderDocument {
+    private static class SalesOrderDocument {
 
         private String image_id;
     }
